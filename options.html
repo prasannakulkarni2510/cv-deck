@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CV Deck – Manage cards</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="logo">CV</span>CV Deck</div>
+    <p class="how">Open the drawer on a job page with the toolbar icon or <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>, then drag a card onto the form.</p>
+  </header>
+
+  <main>
+    <section id="profile" class="panel">
+      <h2>Profile</h2>
+      <p class="help">Used in the header of every cover letter.</p>
+      <div class="row3">
+        <label>Name *<input data-p="name" placeholder="Prasanna Kulkarni"></label>
+        <label>Email<input data-p="email" type="email" placeholder="you@example.com"></label>
+        <label>Phone<input data-p="phone" placeholder="+91 98765 43210"></label>
+      </div>
+    </section>
+
+    <section class="panel" data-deck="cv">
+      <div class="head">
+        <h2>CVs <span class="count"></span></h2>
+        <label class="btn primary">Add CV files<input type="file" accept=".pdf,.docx" multiple hidden data-add="file"></label>
+      </div>
+      <p class="error"></p>
+      <div class="grid"></div>
+    </section>
+
+    <section class="panel" data-deck="cl">
+      <div class="head">
+        <h2>Letters <span class="count"></span></h2>
+        <button class="btn primary" data-add="template">New template</button>
+      </div>
+      <p class="help">Templates use placeholders: <code>{{organization}}</code> <code>{{role}}</code> <code>{{recipient}}</code> <code>{{recipient_title}}</code>. Saved cover letters appear here after you drop a template and choose Save.</p>
+      <p class="error"></p>
+      <div class="grid"></div>
+    </section>
+
+    <section class="panel" data-deck="pf">
+      <div class="head">
+        <h2>Portfolio <span class="count"></span></h2>
+        <div class="actions">
+          <button class="btn" data-add="link">Add link</button>
+          <label class="btn primary">Add portfolio file<input type="file" accept=".pdf,.docx" multiple hidden data-add="file"></label>
+        </div>
+      </div>
+      <form class="linkform" hidden>
+        <input name="url" type="url" placeholder="https://your-portfolio.com" required>
+        <input name="title" placeholder="Page title (optional)">
+        <button class="btn primary">Add</button>
+        <button class="btn" type="button" data-cancel>Cancel</button>
+      </form>
+      <p class="error"></p>
+      <div class="grid"></div>
+    </section>
+    <section id="faq" class="panel">
+      <div class="head">
+        <h2>FAQ answers <span class="count"></span></h2>
+        <button class="btn primary" data-add="faq">Add question</button>
+      </div>
+      <p class="help">Write each answer once. Use <code>{{organization}}</code> where the company name goes; it is filled from the Organization field in the drawer's FAQ tab.</p>
+      <div class="faqgrid"></div>
+    </section>
+  </main>
+
+  <script src="lib.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

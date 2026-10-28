@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "CV Deck",
+  "version": "0.1.0",
+  "description": "Keep CVs, cover letters and portfolio items as cards and drag them onto any job application form.",
+  "permissions": ["storage", "unlimitedStorage", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Show / hide CV Deck" },
+  "options_page": "options.html",
+  "commands": {
+    "toggle-drawer": {
+      "suggested_key": { "default": "Alt+Shift+D" },
+      "description": "Show or hide the CV Deck drawer"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["lib.js", "content.js"],
+      "all_frames": true,
+      "match_about_blank": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["preview.html", "preview.js", "lib.js", "vendor/mammoth.browser.min.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
