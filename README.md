@@ -50,6 +50,10 @@ If you update or reload the extension, reload open job pages too.
 
 This is an early version. It has been tested on a sample application form and on Greenhouse's form markup. It has not been tested yet on LinkedIn Easy Apply, Lever, Workday or Ashby. Upload widgets differ between sites; if one does not work, use **Download** and open an issue naming the site.
 
+## License
+
+MIT. See [LICENSE](LICENSE). The bundled mammoth.js keeps its own license (below).
+
 ## Credits
 
 DOCX previews use [mammoth.js](https://github.com/mwilliamson/mammoth.js) by Michael Williamson, under the BSD 2-Clause license (see `vendor/mammoth.LICENSE`).
