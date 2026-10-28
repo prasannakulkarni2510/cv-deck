@@ -2,6 +2,28 @@
 
 Chrome extension that keeps your CVs, cover letters, portfolio and common application answers as drag-and-drop cards. Drop them onto any job site's form: files attach, cover letters fill in the company and recipient and become a PDF, and written answers paste straight into text boxes.
 
+## See it in action
+
+**Your CVs, one click away.** Open the drawer on any job page; every version is a colored, dated card.
+
+![The CV Deck drawer opening with stacked CV cards](docs/demo-deck.gif)
+
+**Drag a CV onto any upload box.**
+
+![Dragging a CV card onto a resume upload field](docs/demo-drag.gif)
+
+**Fill in the company, drop a tailored PDF.** Type the organization and recipient, watch the letter fill in, drag it onto the cover-letter field, and save it as a new card.
+
+![Filling in a cover-letter template and dropping it as a PDF](docs/demo-letter.gif)
+
+**Write answers once, paste them anywhere.** Type the company once and every saved answer updates. Drag an answer into a text box, or click to copy it.
+
+![Dragging a saved FAQ answer into a "Why do you want to work here?" box](docs/demo-faq.gif)
+
+**Right-click to recolor, download or add.** Download is the fallback for sites without drag and drop.
+
+![Right-click menus for card color, download and adding files](docs/demo-menus.gif)
+
 ## Why
 
 When you apply to many jobs, you keep several versions of your CV, rewrite the same cover letter for each company, and type the same answers to "Why do you want to work here?" again and again. CV Deck keeps all of that one click away, on the page where you apply.
