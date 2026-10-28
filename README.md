@@ -17,21 +17,51 @@ When you apply to many jobs, you keep several versions of your CV, rewrite the s
 
 ## Install
 
-CV Deck is not on the Chrome Web Store yet. Load it as an unpacked extension:
+CV Deck is not on the Chrome Web Store yet, so you load it into Chrome yourself. It takes about a minute and works in Chrome, Edge, Brave and other Chromium browsers.
 
-1. Download or clone this repository.
-2. Open `chrome://extensions` and turn on **Developer mode** (top right).
-3. Click **Load unpacked** and select the repository folder.
-4. The manager page opens. Add your name in **Profile**, then add your CVs, templates, portfolio items and FAQ answers.
+### 1. Download
+
+- **Without git:** on this page, click the green **Code** button, then **Download ZIP**. Unzip it somewhere permanent, for example `Documents/cv-deck`. Chrome loads the extension from that folder, so don't delete or move it later.
+- **With git:**
+  ```bash
+  git clone https://github.com/prasannakulkarni2510/cv-deck.git
+  ```
+
+### 2. Load it into Chrome
+
+1. Open `chrome://extensions` in the address bar.
+2. Turn on **Developer mode** (switch at the top right).
+3. Click **Load unpacked** and select the folder that contains `manifest.json`. If you unzipped, that is the inner `cv-deck-main` folder.
+4. Click the puzzle-piece icon in the toolbar and pin **CV Deck** so its **CV** icon stays visible.
+
+### 3. Set it up (once)
+
+The manager page opens after installing. You can reopen it any time from the ⚙ in the drawer, or by right-clicking the **CV** icon and choosing **Options**.
+
+1. **Profile:** add your name, email and phone. Cover letters use them in their header.
+2. **CVs:** add your CV files (PDF or DOCX, up to 10 MB each). Rename cards so you can tell versions apart.
+3. **Letters:** click **New template** and write a cover letter using `{{organization}}`, `{{role}}`, `{{recipient}}` and `{{recipient_title}}`.
+4. **Portfolio:** add a portfolio file, a link, or both.
+5. **FAQ answers:** write your answers to the common questions. Use `{{organization}}` where the company name goes.
 
 ## Use
 
-1. On a job application page, click the CV Deck toolbar icon or press **Alt+Shift+D**. The drawer opens on the right.
-2. **CVs / Portfolio:** drag a card onto an upload box. Links drag onto text fields.
-3. **Letters:** click a template, fill in Organization and Recipient, then drag the colored strip onto the cover-letter upload box. Choose **Save** to keep the letter as a card.
-4. **FAQ:** type the organization at the top, then click a question to copy its answer, or drag it onto a text box.
+1. Open a job application and click the **CV** icon, or press **Alt+Shift+D**. The drawer opens on the right.
+2. **CVs and portfolio files:** drag a card onto the upload box. A purple "Attach here" outline shows where it will land.
+3. **Links:** drag a portfolio card onto a text field, such as "Website".
+4. **Cover letters:** click a template, fill in Organization and Recipient, then drag the colored strip onto the cover-letter upload box. Choose **Save** to keep the filled letter as a card.
+5. **Written questions:** open the **FAQ** tab, type the company once, then drag an answer onto the text box, or click it to copy and paste with Ctrl+V.
+6. **Sites without drag and drop:** right-click a card and choose **Download**, then use the site's own upload button.
+7. **Organize:** right-click a card to change its color or delete it. Right-click empty space in the drawer to add files.
 
-If you update or reload the extension, reload open job pages too.
+Everything is stored only in your browser. Nothing is uploaded anywhere.
+
+## Update
+
+- **ZIP:** download the new ZIP and replace the folder's contents.
+- **git:** run `git pull` in the folder.
+
+Then open `chrome://extensions`, click the reload ↻ icon on CV Deck, and reload any job pages you have open. Your cards stay as long as you keep loading the extension from the same folder.
 
 ## Project structure
 
