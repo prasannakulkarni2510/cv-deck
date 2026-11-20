@@ -13,7 +13,7 @@
 | 1.3 | Delete from the right-click menu in the drawer. Date on every card. |
 | 1.4 | Download a card's file, for sites where drag and drop does not work. |
 | 1.5 | FAQ tab with ready answers to common portal questions. One Organization value shared by the FAQ and cover letters. Right-click empty space in the drawer to add. |
-| 1.6 | Profile tab: name, emails, phones, location and online profiles (LinkedIn, GitHub, Google Scholar, ORCID and others), each with a Copy button. Closes OQ-02. |
+| 1.6 | FAQ questions shown as stacked cards with the deck's hover motion. Profile tab: name, emails, phones, location and online profiles (LinkedIn, GitHub, Google Scholar, ORCID and others), each with a Copy button. Closes OQ-02. |
 
 ---
 
@@ -163,7 +163,7 @@ The user stores CVs, cover letters and portfolio items in a Chrome extension. On
 
 ### FAQ answers
 
-- **FR-080 — FAQ tab.** The drawer has a fourth tab, "FAQ". It lists the questions and a preview of each answer.
+- **FR-080 — FAQ tab.** The drawer has a fourth tab, "FAQ". Each question is a card in the same stack as the CV deck (UI-003): colored strip with the question (up to two lines), answer preview in the body, the same hover motion and paging (FR-015). Card colors follow the palette in list order.
 - **FR-081 — Organization field.** The FAQ tab has an Organization field at the top. It fills `{{organization}}` in questions and answers.
 - **FR-082 — Shared organization.** The Organization value is shared with the Organization field of every cover-letter template (DATA-007). A change in one place shows in the other.
 - **FR-083 — Filled preview.** The FAQ tab shows questions and answers with the organization filled in.

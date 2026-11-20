@@ -296,7 +296,7 @@
   const STEP = 56;     // UI-003
   let shadow = null, ui = {};
   let cards = [], profile = { name: '' };
-  let tab = 'cv', page = { cv: 0, cl: 0, pf: 0 }, hov = null, cardEls = [];
+  let tab = 'cv', page = { cv: 0, cl: 0, pf: 0, faq: 0 }, hov = null, cardEls = [];
   let popped = null; // { card, draft?, el }
   let dragging = false;
   let faq = [], org = '', details = [];
@@ -388,16 +388,13 @@
     .cp{flex:none;min-width:58px;border:1px solid #B4B2A9;background:#fff;color:#2C2C2A;border-radius:7px;padding:5px 8px;font-size:11.5px;cursor:pointer}
     .cp:hover{background:#EEEDFE;border-color:#7F77DD;color:#26215C}
     .cp.done{background:#EAF3DE;border-color:#97C459;color:#27500A}
-    .orgbox{position:sticky;top:0;z-index:1;background:#F8F7F4;padding:2px 0 10px}
+    .orgbox{padding:0 10px 8px}
     .orgbox p{font-size:10.5px;color:#888780;margin:4px 0 0}
-    .faqlist{display:flex;flex-direction:column;gap:8px}
-    .faq{position:relative;background:#fff;border:1px solid #D3D1C7;border-radius:10px;padding:9px 30px 9px 11px;cursor:pointer;user-select:none;transition:border-color .12s,box-shadow .12s}
-    .faq:hover{border-color:#AFA9EC;box-shadow:0 4px 12px rgba(83,74,183,.12)}
-    .faq .q{font-size:12.5px;font-weight:600;line-height:1.35}
-    .faq .a{font-size:11.5px;color:#5F5E5A;margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-    .faq .a.none{color:#BA7517;font-style:italic}
-    .faq .copy{position:absolute;top:8px;right:9px;color:#888780;font-size:13px}
-    .faq:hover .copy{color:#534AB7}
+    .card.q .name{white-space:normal;font-size:11.5px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+    .card.q .copy{flex:none;font-size:13px;opacity:.75}
+    .card.q:hover .copy{opacity:1}
+    .ans{font-size:11.5px;color:#5F5E5A;margin:8px 12px 0;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .ans.none{color:#BA7517;font-style:italic}
     .menu .confirm{font-size:12px;color:#2C2C2A;margin:0 0 8px;max-width:180px}
     .menu .row{display:flex;gap:6px}
     .menu .row button{flex:1;border:1px solid #B4B2A9;background:#fff;border-radius:7px;padding:5px 8px;font-size:12px;cursor:pointer}
@@ -494,24 +491,28 @@
       b.classList.toggle('on', d === tab);
       b.textContent = d === 'me' ? 'Profile' : d === 'faq' ? `FAQ ${faq.length}` : `${CVDeck.DECKS[d]} ${cards.filter((c) => c.deck === d).length}`;
     }
-    if (tab === 'faq') return renderFaq();
+    const isFaq = tab === 'faq';
+    ui.orgBox.style.display = isFaq ? 'block' : 'none';
+    if (isFaq && shadow.activeElement !== ui.orgInput) ui.orgInput.value = org;
     if (tab === 'me') return renderMe();
     ui.stack.classList.remove('listmode');
-    const deck = cards.filter((c) => c.deck === tab);
+    const deck = isFaq ? faq : cards.filter((c) => c.deck === tab);
     const pages = Math.max(1, Math.ceil(deck.length / PAGE_SIZE));
     if (page[tab] >= pages) page[tab] = 0;
     const slice = deck.slice(page[tab] * PAGE_SIZE, page[tab] * PAGE_SIZE + PAGE_SIZE);
     hov = null;
-    cardEls = slice.map(cardEl);
+    cardEls = isFaq ? slice.map((q, i) => faqCard(q, i, page.faq * PAGE_SIZE + i)) : slice.map(cardEl);
     if (cardEls.length) ui.stack.replaceChildren(...cardEls);
     else ui.stack.replaceChildren(h('div', { class: 'empty' },
-      `No ${CVDeck.DECKS[tab].toLowerCase()} yet. `, h('button', { class: 'link', onclick: openManager }, 'Add some')));
+      isFaq ? 'No questions yet. ' : `No ${CVDeck.DECKS[tab].toLowerCase()} yet. `,
+      h('button', { class: 'link', onclick: () => openManager(isFaq ? 'faq' : undefined) }, 'Add some')));
     layout();
 
     const after = deck.length - (page[tab] + 1) * PAGE_SIZE;
     ui.more.style.display = pages > 1 ? 'block' : 'none';
     ui.more.textContent = after > 0 ? `Show ${Math.min(after, PAGE_SIZE)} more ▾` : `Back to first ${PAGE_SIZE} ▴`;
-    ui.hint.textContent = tab === 'cl'
+    ui.hint.textContent = isFaq ? 'Click a question to copy its answer, or drag it onto a text box.'
+      : tab === 'cl'
       ? 'Click a template to fill it in. Right-click a card for color, download or delete; right-click empty space to add.'
       : 'Drag a card onto the form, or click it to preview. Right-click a card for more; right-click empty space to add.';
   }
@@ -538,17 +539,24 @@
     return ok;
   }
 
-  function faqRow(item) {
+  function faqCard(item, i, n) { // FR-080: question cards stack and fan like the CV deck
+    const [bg, fg] = PALETTE[n % PALETTE.length];
+    const question = CVDeck.fill(item.question, { organization: org });
     const answer = CVDeck.fill(item.answer, { organization: org });
-    const row = h('div', { class: 'faq', draggable: 'true', title: 'Click to copy the answer, or drag it onto a text box' },
-      h('div', { class: 'q' }, CVDeck.fill(item.question, { organization: org })),
-      item.answer.trim() ? h('div', { class: 'a' }, answer) : h('div', { class: 'a none' }, 'No answer yet. Add it in settings.'),
-      h('span', { class: 'copy', 'aria-hidden': 'true' }, '⧉'));
-    row.addEventListener('click', async () => { // FR-084
+    const el = h('div', { class: 'card q', draggable: 'true', title: `${question}
+Click to copy the answer, or drag it onto a text box` },
+      h('div', { class: 'strip', style: `background:${bg};color:${fg}` },
+        h('span', { class: 'badge', style: `color:${fg}` }, 'Q'),
+        h('span', { class: 'name' }, question),
+        h('span', { class: 'copy', 'aria-hidden': 'true' }, '⧉')),
+      item.answer.trim() ? h('p', { class: 'ans' }, answer) : h('p', { class: 'ans none' }, 'No answer yet. Add it in settings.'));
+    el.addEventListener('mouseenter', () => { hov = i; layout(); });
+    el.addEventListener('mouseleave', () => { hov = null; layout(); });
+    el.addEventListener('click', async () => { // FR-084
       if (faqBlocked(item)) return;
       toast((await copyText(answer)) ? 'Copied your answer' : 'Copy failed. Drag the question onto the text box instead.', 'ok', 2500);
     });
-    row.addEventListener('dragstart', (e) => { // FR-085
+    el.addEventListener('dragstart', (e) => { // FR-085
       if (orphaned()) { e.preventDefault(); return toast(STALE, 'warn', 6000); }
       if (faqBlocked(item)) return e.preventDefault();
       e.dataTransfer.setData(CVDeck.MIME_FAQ, item.id);
@@ -556,9 +564,9 @@
       dragging = true;
       setTimeout(() => { if (dragging) ui.drawer.classList.add('ghost'); }, 0);
     });
-    row.addEventListener('dragend', endDrag);
-    row.addEventListener('contextmenu', (e) => e.stopPropagation()); // no add-menu on rows
-    return row;
+    el.addEventListener('dragend', endDrag);
+    el.addEventListener('contextmenu', (e) => e.stopPropagation()); // no add-menu on cards
+    return el;
   }
 
   /* ---------- Profile tab (FR-090..FR-095) ---------- */
@@ -596,16 +604,6 @@
       h('div', { class: 'mebar' }, h('p', {}, 'For forms that ask for links, extra emails or numbers.'), copyAll),
       ...groups.map(([g, rows]) => [h('div', { class: 'grp' }, CVDeck.DETAIL_GROUPS[g]), h('div', { class: 'detlist' }, rows.map(detailRow))]).flat(),
       h('p', { class: 'hint', style: 'margin:12px 2px 0' }, h('button', { class: 'link', onclick: () => openManager('profile') }, 'Edit details')));
-  }
-
-  function renderFaq() {
-    ui.stack.classList.add('listmode');
-    if (ui.stack.firstChild !== ui.orgBox) ui.stack.replaceChildren(ui.orgBox, ui.faqList); // keep focus in the field
-    if (shadow.activeElement !== ui.orgInput) ui.orgInput.value = org;
-    ui.faqList.replaceChildren(...(faq.length ? faq.map(faqRow)
-      : [h('div', { class: 'empty' }, 'No questions yet. ', h('button', { class: 'link', onclick: openManager }, 'Add some'))]));
-    ui.more.style.display = 'none';
-    ui.hint.textContent = 'Click a question to copy its answer, or drag it onto a text box.';
   }
 
   /* ---------- add menu on empty space (FR-044) ---------- */
@@ -832,7 +830,6 @@
     ui.tabs = [...Object.keys(CVDeck.DECKS), 'faq', 'me'].map((d) => h('button', { 'data-deck': d, onclick: () => { tab = d; closePop(); render(); } }));
     ui.stack = h('div', { class: 'stack' });
     ui.stack.addEventListener('contextmenu', (e) => { // FR-044
-      if (e.composedPath()[0].closest?.('.orgbox')) return; // keep the normal menu (paste) in the field
       e.preventDefault();
       addMenu(e);
     });
@@ -842,13 +839,12 @@
       org = ui.orgInput.value.trim();
       ui.orgInput.classList.remove('bad');
       saveOrg();
-      ui.faqList.replaceChildren(...faq.map(faqRow));
+      render();
     });
     ui.orgBox = h('div', { class: 'orgbox' },
       h('label', {}, 'Organization'), ui.orgInput,
       h('p', {}, 'Fills {{organization}} in answers and cover letters.'));
-    ui.faqList = h('div', { class: 'faqlist' });
-    ui.more = h('button', { class: 'more', onclick: () => { const n = Math.ceil(cards.filter((c) => c.deck === tab).length / PAGE_SIZE); page[tab] = (page[tab] + 1) % n; render(); } });
+    ui.more = h('button', { class: 'more', onclick: () => { const n = Math.ceil((tab === 'faq' ? faq.length : cards.filter((c) => c.deck === tab).length) / PAGE_SIZE); page[tab] = (page[tab] + 1) % n; render(); } });
     ui.hint = h('p', { class: 'hint' });
     ui.mini = h('button', { class: 'mini', title: 'Show CV Deck', onclick: () => setMinimized(false) }, 'CV');
     ui.menu = h('div', { class: 'menu' });
@@ -859,6 +855,7 @@
         h('button', { class: 'icon', title: 'Minimize', onclick: () => setMinimized(true) }, '–'),
         h('button', { class: 'icon', title: 'Close', onclick: () => setOpen(false) }, '✕')),
       h('nav', { class: 'tabs' }, ui.tabs),
+      ui.orgBox,
       ui.stack,
       h('div', { class: 'foot' }, ui.more, ui.hint));
     shadow.append(ui.dim, ui.layer, ui.drawer, ui.mini, ui.menu);
