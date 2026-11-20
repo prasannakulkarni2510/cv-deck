@@ -306,7 +306,7 @@ The user stores CVs, cover letters and portfolio items in a Chrome extension. On
 | FR-043 | Given the delete confirmation, when the user selects "Cancel", then the card stays. |
 | UI-014 | Given a CV added on 29 October of the current year, then its name strip shows "29 Oct". |
 | UI-014 | Given a CV whose file is replaced today, then its name strip shows today's date. |
-| FR-071 / FR-074 | Given a popped CV card with the file name `Prasanna_CV.pdf`, when the user clicks "Download", then the browser downloads `Prasanna_CV.pdf`. |
+| FR-071 / FR-074 | Given a popped CV card with the file name `Alex_Morgan_CV.pdf`, when the user clicks "Download", then the browser downloads `Alex_Morgan_CV.pdf`. |
 | FR-072 | Given a popped template with organization "Acme" and recipient filled, when the user clicks "Download", then the browser downloads `Cover_letter_Acme.pdf` and the save prompt appears. |
 | BR-16 | Given a template with an empty Recipient, when the user selects "Download" in the right-click menu, then no download starts, the card pops and Recipient is highlighted. |
 | BR-17 | Given a link-only card, when the user right-clicks it, then the menu has no "Download". |
