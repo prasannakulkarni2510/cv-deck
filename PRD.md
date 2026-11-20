@@ -1,6 +1,6 @@
 # PRD — CV Deck (Chrome extension)
 
-**Version:** 1.5
+**Version:** 1.6
 **Status:** Ready for implementation. Open questions in section 15 do not block.
 
 **Change log**
@@ -13,6 +13,7 @@
 | 1.3 | Delete from the right-click menu in the drawer. Date on every card. |
 | 1.4 | Download a card's file, for sites where drag and drop does not work. |
 | 1.5 | FAQ tab with ready answers to common portal questions. One Organization value shared by the FAQ and cover letters. Right-click empty space in the drawer to add. |
+| 1.6 | Profile tab: name, emails, phones, location and online profiles (LinkedIn, GitHub, Google Scholar, ORCID and others), each with a Copy button. Closes OQ-02. |
 
 ---
 
@@ -79,6 +80,7 @@ The user stores CVs, cover letters and portfolio items in a Chrome extension. On
 | A-08 | The form values and the edited letter text of a template stay stored until the user changes them, also after a page reload. |
 | A-09 | Until OQ-01 is closed, the form has: Organization (required), Role, Recipient (required), Recipient title. |
 | A-10 | The FAQ starts with 13 questions that need a written answer, with empty answers: why this organization, why this role, what you know about the organization, about yourself, why hire you, strengths, weakness, a project you are proud of, a challenge, a difficult teammate or stakeholder, reason for leaving, five-year plan, anything else to add. Short-fact questions (salary, notice period, referral source) are not preloaded, because they are fast to type. The user can still add them (FR-087). |
+| A-11 | The profile details start with three empty rows: LinkedIn, GitHub and Website, the links job forms ask for most. Other types are one click away (FR-096). |
 
 ## 6. Constraints
 
@@ -171,6 +173,17 @@ The user stores CVs, cover letters and portfolio items in a Chrome extension. On
 - **FR-087 — Add and delete questions.** The user can add a question and delete a question (after a confirmation) on the manager page.
 - **FR-088 — Upgrade of the preloaded list.** IF the user has the version-1 question list, THEN the extension removes the short-fact questions that have no answer and adds the new questions of A-10. IF a short-fact question has an answer, THEN it stays.
 
+### Profile tab
+
+- **FR-090 — Profile tab.** The drawer has a fifth tab, "Profile". It lists the user's contact details and links.
+- **FR-091 — Groups.** The tab shows filled entries only, in four groups: Contact (name, primary email, primary phone, then other emails, phones, location, address), Online profiles, Research, Other. Within a group, entries keep the order of the manager page.
+- **FR-092 — Copy.** Each entry has a Copy button. A click copies the full value and the button shows "Copied" for about 1.5 s. There is no drag and drop on this tab.
+- **FR-093 — Link cleanup.** IF a link value has no scheme but starts with a domain (for example `github.com/me`), THEN the manager page adds `https://` when the field loses focus. The drawer shows links without `https://` and `www.`, and copies the full value.
+- **FR-094 — Format warning.** IF an email, phone or link value does not look valid, THEN the manager page outlines the field in amber. The value is still saved.
+- **FR-095 — Copy all.** A "Copy all" button copies every filled entry, one per line: the name alone, then `Label: value`.
+- **FR-096 — Add entries.** The manager page Profile section has one "+" button per entry type, grouped: Contact (other email, other phone, location, postal address); Online profiles (LinkedIn, GitHub, Website, GitLab, Blog, X, Stack Overflow, Kaggle, Hugging Face, LeetCode, Behance, Dribbble, YouTube); Research (Google Scholar, ORCID iD, ResearchGate, Semantic Scholar, DBLP, OpenReview); Other (custom field). A type can be added more than once.
+- **FR-097 — Edit entries.** Each entry has an editable label, a value, move up/down buttons and Delete. Delete asks for confirmation only when the entry has a value.
+
 ### Popped file and link cards
 
 - **FR-060 — Pop a card.** A click on a CV, saved-letter or portfolio card pops it into a larger card next to the drawer.
@@ -201,6 +214,7 @@ The user stores CVs, cover letters and portfolio items in a Chrome extension. On
 - **BR-19.** IF an answer contains `{{organization}}` and the Organization field is empty, THEN copy and drag do nothing, and the extension highlights the Organization field.
 - **BR-20.** IF the user drops a question on anything other than a text box, THEN the extension inserts nothing and shows "Drop answers on a text box."
 - **BR-21.** IF the text box already contains text, THEN the dropped answer replaces it.
+- **BR-22.** IF no profile entry has a value, THEN the Profile tab shows "No details yet" with a link to the Profile section of the manager page.
 
 ## 9. UI Requirements
 
@@ -229,7 +243,8 @@ The user stores CVs, cover letters and portfolio items in a Chrome extension. On
 - **DATA-002 — File card.** File name, file type, size, file content.
 - **DATA-003 — Template card.** Template text with placeholders. Current form values. Current edited letter text (empty = template text).
 - **DATA-004 — Portfolio card.** A file (DATA-002), a URL with page title, or both.
-- **DATA-005 — Profile.** Name, email, phone. Other fields TBD (OQ-02).
+- **DATA-005 — Profile.** Name, primary email, primary phone. Used in the cover-letter header.
+- **DATA-009 — Profile detail.** ID, type (FR-096), label, value. The list order is the display order. Stored apart from DATA-005, so the letter header does not change.
 - **DATA-007 — Current organization.** One organization value for the current application. Used by the FAQ (FR-081) and by all cover-letter templates. It stays until the user changes it.
 - **DATA-008 — FAQ item.** ID, question, answer. The list order is the display order.
 - **DATA-006 — Storage.** All data is stored locally in the Chrome profile with the unlimited-storage permission.
@@ -301,6 +316,9 @@ The user stores CVs, cover letters and portfolio items in a Chrome extension. On
 | FR-082 | Given Organization "Acme" in the FAQ tab, when the user pops a cover-letter template, then its Organization field shows "Acme". |
 | BR-18 | Given a question with no answer, when the user clicks it, then nothing is copied and "No answer yet. Add it in settings." appears. |
 | BR-19 | Given an answer with `{{organization}}` and an empty Organization, when the user clicks the question, then nothing is copied and the Organization field is highlighted. |
+| FR-092 | Given GitHub `https://github.com/me` in the profile, when the user clicks its Copy button in the Profile tab, then the clipboard contains `https://github.com/me`. |
+| FR-093 | Given the manager page, when the user types `github.com/me` in a GitHub row and leaves the field, then the value becomes `https://github.com/me`. |
+| FR-091 | Given a Website row with no value, when the user opens the Profile tab, then no Website entry is shown. |
 | FR-087 | Given the manager page, when the user clicks "Add question", then a new question appears in the FAQ section and in the FAQ tab. |
 | ERR-002 | Given a page with no file input near the drop point, when the user drops a CV card, then a warning appears. |
 | ERR-007 | Given a link-only card, when the user drops it on an upload field, then no file is attached and "Drop links on a text field." appears. |
@@ -310,5 +328,5 @@ The user stores CVs, cover letters and portfolio items in a Chrome extension. On
 | ID | Question |
 |---|---|
 | OQ-01 | Final cover-letter form fields and which are required. A-09 applies until closed. |
-| OQ-02 | Profile fields besides name, email, phone (for example address, LinkedIn). |
+| OQ-02 | Closed in 1.6: see FR-090–FR-097 and DATA-009. |
 | OQ-03 | PDF font and page size. Default: A4, Helvetica. |

@@ -112,10 +112,11 @@ async function render() {
 // while the user is typing in an editor on this page.
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
-  const typing = document.activeElement?.matches('input, textarea') && document.activeElement.closest('.card, .faqitem');
+  const typing = document.activeElement?.matches('input, textarea') && document.activeElement.closest('.card, .faqitem, .detail');
   if (typing) return;
   if (changes.cards) render();
   if (changes.faq) renderFaq();
+  if (changes.details) renderDetails();
 });
 
 /* ---------- FAQ (FR-086, FR-087) ---------- */
@@ -155,6 +156,62 @@ document.querySelector('[data-add="faq"]').addEventListener('click', async () =>
   });
 })();
 
+/* ---------- links and other details (FR-096, FR-097) ---------- */
+function detailEditor(item, i, count) {
+  const t = CVDeck.detailType(item.type);
+  const save = patchSaver((patch) => CVDeck.updateDetail(item.id, patch), 350);
+  const value = h('input', {
+    value: item.value, placeholder: t.placeholder, 'aria-label': (item.label || t.label) + ' value',
+    type: t.kind === 'email' ? 'email' : t.kind === 'tel' ? 'tel' : 'text',
+    oninput: (e) => { e.target.classList.remove('warn'); save({ value: e.target.value }); },
+    onblur: (e) => { // FR-093
+      const clean = CVDeck.cleanValue(item.type, e.target.value);
+      if (clean !== e.target.value) { e.target.value = clean; save({ value: clean }); }
+      e.target.classList.toggle('warn', CVDeck.looksWrong(item.type, clean));
+      e.target.title = e.target.classList.contains('warn') ? `This does not look like a ${t.kind === 'tel' ? 'phone number' : t.kind}.` : '';
+    },
+  });
+  value.classList.toggle('warn', CVDeck.looksWrong(item.type, item.value));
+  const move = (by, label, sym) => h('button', {
+    class: 'btn mv', title: label, 'aria-label': label, disabled: (by < 0 ? i === 0 : i === count - 1) ? '' : null,
+    onclick: async () => { await CVDeck.moveDetail(item.id, by); renderDetails(); },
+  }, sym);
+  return h('div', { class: 'detail', 'data-id': item.id },
+    h('input', { class: 'lbl', value: item.label, placeholder: t.type === 'custom' ? 'Label, e.g. Portfolio password' : t.label, 'aria-label': 'Label',
+      oninput: (e) => save({ label: e.target.value }) }),
+    value,
+    move(-1, 'Move up', '↑'), move(1, 'Move down', '↓'),
+    h('button', { class: 'btn danger', onclick: async () => {
+      if (item.value.trim() && !confirm(`Delete "${item.label || t.label}"?`)) return;
+      await CVDeck.removeDetail(item.id);
+      renderDetails();
+    } }, 'Delete'));
+}
+
+async function renderDetails() {
+  const list = await CVDeck.getDetails();
+  // A render can follow a chip click or a move; keep focus on the same field.
+  const active = document.activeElement, row = active?.closest?.('.detail');
+  const focusSel = row && `.detail[data-id="${row.dataset.id}"] ${active.matches('.lbl') ? '.lbl' : active.matches('input') ? 'input:not(.lbl)' : ''}`.trim();
+  document.querySelector('#profile .details').replaceChildren(...(list.length
+    ? list.map((d, i) => detailEditor(d, i, list.length))
+    : [h('p', { class: 'empty' }, 'No links yet. Add one below.')]));
+  if (focusSel && active.matches('input')) document.querySelector(focusSel)?.focus();
+}
+
+(function renderAdders() { // FR-096: one chip per common field, grouped
+  const box = document.querySelector('#profile .adders');
+  for (const [g, name] of Object.entries(CVDeck.DETAIL_GROUPS)) {
+    const chips = CVDeck.DETAIL_TYPES.filter((t) => t.group === g).map((t) => h('button', { class: 'chip', onclick: async () => {
+      await CVDeck.addDetail(t.type);
+      await renderDetails();
+      const rows = document.querySelectorAll('#profile .detail');
+      rows[rows.length - 1]?.querySelector(t.type === 'custom' ? '.lbl' : 'input:not(.lbl)').focus();
+    } }, '+ ' + (t.type === 'custom' ? 'Custom field' : t.label)));
+    box.append(h('div', { class: 'grp' }, h('span', {}, name), h('div', { class: 'chips' }, chips)));
+  }
+})();
+
 /* ---------- add actions ---------- */
 document.querySelectorAll('section[data-deck]').forEach((sec) => {
   const deck = sec.dataset.deck;
@@ -183,6 +240,7 @@ linkForm.addEventListener('submit', async (e) => { // FR-002
 });
 
 render();
+renderDetails();
 renderFaq().then(() => {
   // "Add question" in the drawer opens this page at #faq: focus the new question.
   if (location.hash === '#faq') document.querySelector('#faq .faqitem:last-child input')?.select();

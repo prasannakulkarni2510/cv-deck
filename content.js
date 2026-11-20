@@ -299,9 +299,9 @@
   let tab = 'cv', page = { cv: 0, cl: 0, pf: 0 }, hov = null, cardEls = [];
   let popped = null; // { card, draft?, el }
   let dragging = false;
-  let faq = [], org = '';
-  const loaded = Promise.all([CVDeck.list(), CVDeck.getProfile(), chrome.storage.local.get(ORIGINS_KEY), CVDeck.getFaq(), CVDeck.getOrg()])
-    .then(([c, p, o, f, g]) => { cards = c; profile = p; faq = f; org = g; return o; });
+  let faq = [], org = '', details = [];
+  const loaded = Promise.all([CVDeck.list(), CVDeck.getProfile(), chrome.storage.local.get(ORIGINS_KEY), CVDeck.getFaq(), CVDeck.getOrg(), CVDeck.getDetails()])
+    .then(([c, p, o, f, g, d]) => { cards = c; profile = p; faq = f; org = g; details = d; return o; });
 
   const CSS = `
     :host{all:initial}
@@ -315,8 +315,8 @@
     .title{flex:1;font-weight:600;font-size:14px}
     .icon{border:0;background:transparent;color:#5F5E5A;width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:15px;line-height:1}
     .icon:hover{background:#ECEAE3;color:#2C2C2A}
-    .tabs{display:flex;gap:4px;padding:0 10px 10px}
-    .tabs button{flex:1 1 auto;border:0;background:#fff;color:#5F5E5A;padding:7px 4px;border-radius:8px;font-size:11.5px;white-space:nowrap;cursor:pointer;outline:1px solid transparent}
+    .tabs{display:flex;gap:3px;padding:0 10px 10px}
+    .tabs button{flex:1 1 auto;border:0;background:#fff;color:#5F5E5A;padding:7px 3px;border-radius:8px;font-size:11px;white-space:nowrap;cursor:pointer;outline:1px solid transparent}
     .tabs button.on{color:#2C2C2A;font-weight:600;outline-color:#B4B2A9}
     .stack{position:relative;flex:1;overflow:hidden}
     .card{position:absolute;left:26px;top:4px;width:224px;height:118px;border-radius:12px;background:#fff;border:1px solid #D3D1C7;
@@ -376,7 +376,18 @@
     .menu .del:hover{background:#FCEBEB}
     .menu .act{display:block;width:100%;text-align:left;border:0;background:none;color:#2C2C2A;font-size:12.5px;padding:4px 2px;cursor:pointer;border-radius:6px}
     .menu .act:hover{background:#F1EFE8}
-    .stack.faqmode{overflow-y:auto;padding:0 10px 10px}
+    .stack.listmode{overflow-y:auto;padding:0 10px 10px}
+    .mebar{position:sticky;top:0;z-index:1;background:#F8F7F4;padding:2px 0 4px;display:flex;align-items:center;gap:8px}
+    .mebar p{flex:1;font-size:10.5px;color:#888780;margin:0;line-height:1.35}
+    .grp{font-size:10.5px;font-weight:600;color:#888780;text-transform:uppercase;letter-spacing:.05em;margin:10px 2px 5px}
+    .detlist{display:flex;flex-direction:column;gap:5px}
+    .det{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #D3D1C7;border-radius:10px;padding:6px 7px 7px 11px}
+    .det .txt{flex:1;min-width:0}
+    .det .k{font-size:10.5px;color:#5F5E5A;line-height:1.3}
+    .det .v{font-size:12.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:text}
+    .cp{flex:none;min-width:58px;border:1px solid #B4B2A9;background:#fff;color:#2C2C2A;border-radius:7px;padding:5px 8px;font-size:11.5px;cursor:pointer}
+    .cp:hover{background:#EEEDFE;border-color:#7F77DD;color:#26215C}
+    .cp.done{background:#EAF3DE;border-color:#97C459;color:#27500A}
     .orgbox{position:sticky;top:0;z-index:1;background:#F8F7F4;padding:2px 0 10px}
     .orgbox p{font-size:10.5px;color:#888780;margin:4px 0 0}
     .faqlist{display:flex;flex-direction:column;gap:8px}
@@ -406,7 +417,7 @@
     return el;
   }
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-  const openManager = () => chrome.runtime.sendMessage({ type: 'cvdeck:manager' });
+  const openManager = (section) => chrome.runtime.sendMessage({ type: 'cvdeck:manager', section: typeof section === 'string' ? section : undefined });
 
   function strip(card, extra = []) {
     const [bg, fg] = PALETTE[card.color] || PALETTE[0];
@@ -481,10 +492,11 @@
     for (const b of ui.tabs) {
       const d = b.dataset.deck;
       b.classList.toggle('on', d === tab);
-      b.textContent = d === 'faq' ? `FAQ ${faq.length}` : `${CVDeck.DECKS[d]} ${cards.filter((c) => c.deck === d).length}`;
+      b.textContent = d === 'me' ? 'Profile' : d === 'faq' ? `FAQ ${faq.length}` : `${CVDeck.DECKS[d]} ${cards.filter((c) => c.deck === d).length}`;
     }
     if (tab === 'faq') return renderFaq();
-    ui.stack.classList.remove('faqmode');
+    if (tab === 'me') return renderMe();
+    ui.stack.classList.remove('listmode');
     const deck = cards.filter((c) => c.deck === tab);
     const pages = Math.max(1, Math.ceil(deck.length / PAGE_SIZE));
     if (page[tab] >= pages) page[tab] = 0;
@@ -549,8 +561,45 @@
     return row;
   }
 
+  /* ---------- Profile tab (FR-090..FR-095) ---------- */
+  function detailRow(row) {
+    const btn = h('button', { class: 'cp', title: `Copy ${row.value}` }, 'Copy');
+    btn.addEventListener('click', async () => { // FR-092
+      if (orphaned()) return toast(STALE, 'warn', 6000);
+      if (!(await copyText(row.value))) return toast('Copy failed. Select the text and press Ctrl+C.', 'error', 3000);
+      btn.textContent = 'Copied';
+      btn.classList.add('done');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1400);
+    });
+    const el = h('div', { class: 'det' },
+      h('div', { class: 'txt' },
+        h('div', { class: 'k' }, row.label),
+        h('div', { class: 'v', title: row.value }, row.url ? CVDeck.shortUrl(row.value) : row.value)),
+      btn);
+    el.addEventListener('contextmenu', (e) => e.stopPropagation()); // keep the normal menu for selected text
+    return el;
+  }
+
+  function renderMe() {
+    ui.stack.classList.add('listmode');
+    const groups = CVDeck.profileRows(profile, details);
+    ui.more.style.display = 'none';
+    ui.hint.textContent = 'Copy a detail, then paste it into the form with Ctrl+V.';
+    if (!groups.length) {
+      return ui.stack.replaceChildren(h('div', { class: 'empty' }, 'No details yet. ',
+        h('button', { class: 'link', onclick: () => openManager('profile') }, 'Add your email, phone and links')));
+    }
+    const copyAll = h('button', { class: 'btn', onclick: async () => { // FR-095
+      toast((await copyText(CVDeck.allDetailsText(groups))) ? 'Copied all details' : 'Copy failed.', 'ok', 2000);
+    } }, 'Copy all');
+    ui.stack.replaceChildren(
+      h('div', { class: 'mebar' }, h('p', {}, 'For forms that ask for links, extra emails or numbers.'), copyAll),
+      ...groups.map(([g, rows]) => [h('div', { class: 'grp' }, CVDeck.DETAIL_GROUPS[g]), h('div', { class: 'detlist' }, rows.map(detailRow))]).flat(),
+      h('p', { class: 'hint', style: 'margin:12px 2px 0' }, h('button', { class: 'link', onclick: () => openManager('profile') }, 'Edit details')));
+  }
+
   function renderFaq() {
-    ui.stack.classList.add('faqmode');
+    ui.stack.classList.add('listmode');
     if (ui.stack.firstChild !== ui.orgBox) ui.stack.replaceChildren(ui.orgBox, ui.faqList); // keep focus in the field
     if (shadow.activeElement !== ui.orgInput) ui.orgInput.value = org;
     ui.faqList.replaceChildren(...(faq.length ? faq.map(faqRow)
@@ -582,6 +631,7 @@
       pf: item('Add portfolio file…', () => pickFiles('pf')),
       cl: item('New template', async () => { await CVDeck.addTemplate('New template', CVDeck.STARTER_TEMPLATE); openManager(); }),
       faq: item('Add question', async () => { await CVDeck.addFaq(); chrome.runtime.sendMessage({ type: 'cvdeck:manager', section: 'faq' }); }),
+      me: item('Add a link or detail…', () => openManager('profile')),
     };
     ui.menu.replaceChildren(actions[tab]);
     Object.assign(ui.menu.style, { display: 'block', left: Math.min(e.clientX, innerWidth - 200) + 'px', top: Math.min(e.clientY, innerHeight - 60) + 'px' });
@@ -779,7 +829,7 @@
 
     ui.dim = h('div', { class: 'dim', onclick: closePop }); // FR-035
     ui.layer = h('div');
-    ui.tabs = [...Object.keys(CVDeck.DECKS), 'faq'].map((d) => h('button', { 'data-deck': d, onclick: () => { tab = d; closePop(); render(); } }));
+    ui.tabs = [...Object.keys(CVDeck.DECKS), 'faq', 'me'].map((d) => h('button', { 'data-deck': d, onclick: () => { tab = d; closePop(); render(); } }));
     ui.stack = h('div', { class: 'stack' });
     ui.stack.addEventListener('contextmenu', (e) => { // FR-044
       if (e.composedPath()[0].closest?.('.orgbox')) return; // keep the normal menu (paste) in the field
@@ -841,7 +891,12 @@
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if (changes.profile) { profile = changes.profile.newValue || { name: '' }; popped?.update?.(); }
+    if (changes.profile) {
+      profile = changes.profile.newValue || { name: '' };
+      popped?.update?.();
+      if (tab === 'me') render();
+    }
+    if (changes.details) { details = changes.details.newValue || []; if (tab === 'me') render(); }
     if (changes.faq) { faq = changes.faq.newValue || []; render(); }
     if (changes['app:organization']) { // DATA-007: keep the FAQ tab and an open template in step
       org = changes['app:organization'].newValue || '';

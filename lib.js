@@ -4,6 +4,7 @@
 //   blob:<id>        – file content as a data URL (DATA-002)
 //   draft:<id>       – form values + edited letter text of a template (DATA-003, A-08)
 //   profile          – { name, email, phone } (DATA-005)
+//   details          – array of { id, type, label, value }: links, extra emails and phones (DATA-009)
 var CVDeck = globalThis.CVDeck || (() => {
   const local = chrome.storage.local;
   const get = async (key, fallback) => (await local.get(key))[key] ?? fallback;
@@ -53,8 +54,39 @@ var CVDeck = globalThis.CVDeck || (() => {
   ];
   const FAQ_VERSION = 2;
 
+  // DATA-009 / OQ-02: details a form asks for besides the CV. `kind` sets the
+  // check and the cleanup: url values get https:// added. Order = chip order.
+  const DETAIL_GROUPS = { contact: 'Contact', web: 'Online profiles', research: 'Research', other: 'Other' };
+  const DETAIL_TYPES = [
+    { type: 'email', group: 'contact', kind: 'email', label: 'Other email', placeholder: 'you@university.edu' },
+    { type: 'phone', group: 'contact', kind: 'tel', label: 'Other phone', placeholder: '+44 20 7946 0958' },
+    { type: 'location', group: 'contact', kind: 'text', label: 'Location', placeholder: 'Pune, India' },
+    { type: 'address', group: 'contact', kind: 'text', label: 'Postal address', placeholder: 'Street, city, postcode, country' },
+    { type: 'linkedin', group: 'web', kind: 'url', label: 'LinkedIn', placeholder: 'linkedin.com/in/your-name' },
+    { type: 'github', group: 'web', kind: 'url', label: 'GitHub', placeholder: 'github.com/your-name' },
+    { type: 'website', group: 'web', kind: 'url', label: 'Website', placeholder: 'your-name.com' },
+    { type: 'gitlab', group: 'web', kind: 'url', label: 'GitLab', placeholder: 'gitlab.com/your-name' },
+    { type: 'blog', group: 'web', kind: 'url', label: 'Blog', placeholder: 'medium.com/@your-name' },
+    { type: 'x', group: 'web', kind: 'url', label: 'X (Twitter)', placeholder: 'x.com/your-name' },
+    { type: 'stackoverflow', group: 'web', kind: 'url', label: 'Stack Overflow', placeholder: 'stackoverflow.com/users/…' },
+    { type: 'kaggle', group: 'web', kind: 'url', label: 'Kaggle', placeholder: 'kaggle.com/your-name' },
+    { type: 'huggingface', group: 'web', kind: 'url', label: 'Hugging Face', placeholder: 'huggingface.co/your-name' },
+    { type: 'leetcode', group: 'web', kind: 'url', label: 'LeetCode', placeholder: 'leetcode.com/u/your-name' },
+    { type: 'behance', group: 'web', kind: 'url', label: 'Behance', placeholder: 'behance.net/your-name' },
+    { type: 'dribbble', group: 'web', kind: 'url', label: 'Dribbble', placeholder: 'dribbble.com/your-name' },
+    { type: 'youtube', group: 'web', kind: 'url', label: 'YouTube', placeholder: 'youtube.com/@your-name' },
+    { type: 'scholar', group: 'research', kind: 'url', label: 'Google Scholar', placeholder: 'scholar.google.com/citations?user=…' },
+    { type: 'orcid', group: 'research', kind: 'text', label: 'ORCID iD', placeholder: '0000-0002-1825-0097' },
+    { type: 'researchgate', group: 'research', kind: 'url', label: 'ResearchGate', placeholder: 'researchgate.net/profile/Your-Name' },
+    { type: 'semanticscholar', group: 'research', kind: 'url', label: 'Semantic Scholar', placeholder: 'semanticscholar.org/author/…' },
+    { type: 'dblp', group: 'research', kind: 'url', label: 'DBLP', placeholder: 'dblp.org/pid/…' },
+    { type: 'openreview', group: 'research', kind: 'url', label: 'OpenReview', placeholder: 'openreview.net/profile?id=~Your_Name1' },
+    { type: 'custom', group: 'other', kind: 'text', label: 'Other', placeholder: 'Value' },
+  ];
+  const DETAIL_DEFAULTS = ['linkedin', 'github', 'website']; // A-11
+
   const api = {
-    PALETTE, DECKS, FIELDS, MAX_SIZE,
+    PALETTE, DECKS, FIELDS, MAX_SIZE, DETAIL_GROUPS, DETAIL_TYPES,
     STARTER_TEMPLATE: 'Dear {{recipient}},\n\nI am applying for the {{role}} role at {{organization}}.\n\n\n\nKind regards,',
     MIME: 'application/x-cvdeck-card',
     MIME_URL: 'application/x-cvdeck-has-url',
@@ -112,6 +144,64 @@ var CVDeck = globalThis.CVDeck || (() => {
     },
     async removeFaq(id) { await api.saveFaq((await api.getFaq()).filter((q) => q.id !== id)); },
     needsOrg: (text) => /\{\{\s*organization\s*\}\}/.test(text),
+
+    /* ---------- Profile details (FR-090..FR-097) ---------- */
+    detailType: (type) => DETAIL_TYPES.find((t) => t.type === type) || DETAIL_TYPES[DETAIL_TYPES.length - 1],
+    async getDetails() {
+      const details = await get('details', null);
+      if (details) return details;
+      const seeded = DETAIL_DEFAULTS.map((type) => ({ id: api.uid(), type, label: api.detailType(type).label, value: '' }));
+      await local.set({ details: seeded });
+      return seeded;
+    },
+    async saveDetails(details) { await local.set({ details }); },
+    async addDetail(type) {
+      const item = { id: api.uid(), type, label: type === 'custom' ? '' : api.detailType(type).label, value: '' };
+      await api.saveDetails([...(await api.getDetails()), item]);
+      return item;
+    },
+    async updateDetail(id, patch) {
+      await api.saveDetails((await api.getDetails()).map((d) => (d.id === id ? { ...d, ...patch } : d)));
+    },
+    async removeDetail(id) { await api.saveDetails((await api.getDetails()).filter((d) => d.id !== id)); },
+    async moveDetail(id, by) {
+      const list = await api.getDetails();
+      const i = list.findIndex((d) => d.id === id), j = i + by;
+      if (i < 0 || j < 0 || j >= list.length) return;
+      [list[i], list[j]] = [list[j], list[i]];
+      await api.saveDetails(list);
+    },
+    // FR-093: "github.com/me" → "https://github.com/me"; anything else stays as typed.
+    cleanValue(type, value) {
+      const v = value.trim();
+      if (api.detailType(type).kind !== 'url' || !v || /^[a-z][\w+.-]*:/i.test(v)) return v;
+      return /^[\w-]+(\.[\w-]+)+([/?#]|$)/.test(v) ? 'https://' + v : v;
+    },
+    looksWrong(type, value) { // shown as a warning only; the value is still saved
+      const v = value.trim(), kind = api.detailType(type).kind;
+      if (!v) return false;
+      if (kind === 'email') return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      if (kind === 'url') return !/^https?:\/\/\S+\.\S+$/i.test(v);
+      if (kind === 'tel') return !/^[+\d][\d\s().-]{5,}$/.test(v);
+      return false;
+    },
+    shortUrl: (v) => v.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, ''),
+    // FR-091: filled entries in display groups, primary profile fields first.
+    profileRows(profile, details) {
+      const rows = [];
+      if (profile.name) rows.push({ group: 'contact', label: 'Name', value: profile.name, key: 'name' });
+      if (profile.email) rows.push({ group: 'contact', label: 'Email', value: profile.email });
+      if (profile.phone) rows.push({ group: 'contact', label: 'Phone', value: profile.phone });
+      for (const d of details) {
+        if (!d.value.trim()) continue;
+        const t = api.detailType(d.type);
+        rows.push({ group: t.group, label: d.label.trim() || t.label, value: d.value.trim(), url: t.kind === 'url' && /^https?:\/\//i.test(d.value.trim()) });
+      }
+      return Object.keys(DETAIL_GROUPS).map((g) => [g, rows.filter((r) => r.group === g)]).filter(([, r]) => r.length);
+    },
+    allDetailsText(groups) { // FR-095
+      return groups.flatMap(([, rows]) => rows).map((r) => (r.key === 'name' ? r.value : `${r.label}: ${r.value}`)).join('\n');
+    },
 
     // FR-040: next palette color after the last card of the same deck.
     nextColor(cards, deck) {
