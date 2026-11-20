@@ -222,6 +222,9 @@ var CVDeck = globalThis.CVDeck || (() => {
     },
 
     readAsDataURL(file) {
+      if (typeof FileReader === 'undefined') { // service worker (prefill import)
+        return file.arrayBuffer().then((b) => api.bytesToDataUrl(new Uint8Array(b), file.type || TYPES[api.ext(file.name)]));
+      }
       return new Promise((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(r.result);

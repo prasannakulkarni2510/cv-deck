@@ -9,3 +9,7 @@ desktop.ini
 *.zip
 *.crx
 *.pem
+
+# Personal prefill data (see README)
+prefill.json
+prefill/

@@ -67,6 +67,10 @@ The manager page opens after installing. You can reopen it any time from the ⚙
 4. **Portfolio:** add a portfolio file, a link, or both.
 5. **FAQ answers:** write your answers to the common questions. Use `{{organization}}` where the company name goes.
 
+### Optional: prefill from a file
+
+To set up CV Deck again quickly, for example on a new computer, put a `prefill.json` next to `manifest.json`. CV Deck imports it when it is installed or reloaded. It only fills empty fields and never overwrites what you changed. It can hold `profile`, `details`, `templates`, `faq` and `files`. Files go in a `prefill/` folder, for example `{"deck": "cv", "path": "prefill/My_CV.pdf"}`. Git ignores both, so your personal data stays out of the repo.
+
 ## Use
 
 1. Open a job application and click the **CV** icon, or press **Alt+Shift+D**. The drawer opens on the right.
